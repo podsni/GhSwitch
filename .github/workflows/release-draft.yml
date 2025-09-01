@@ -1,0 +1,205 @@
+name: Create Release Draft
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0 - without v prefix)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  create-release-draft:
+    name: Create Release Draft
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Create Git tag
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "v${{ github.event.inputs.version }}" -m "Release v${{ github.event.inputs.version }}"
+        git push origin "v${{ github.event.inputs.version }}"
+
+    - name: Build all platform binaries
+      run: |
+        echo "🔨 Building GhSwitch v${{ github.event.inputs.version }} for all platforms..."
+        mkdir -p build
+        
+        # Build for Linux x64
+        echo "🐧 Building for Linux x64..."
+        bun build --compile --target=bun-linux-x64 --minify --sourcemap --outfile build/ghswitch ./index.ts
+        
+        # Build for Linux ARM64
+        echo "🐧 Building for Linux ARM64..."
+        bun build --compile --target=bun-linux-arm64 --minify --sourcemap --outfile build/ghswitch-linux-arm64 ./index.ts
+        
+        # Build for Windows x64
+        echo "🪟 Building for Windows x64..."
+        bun build --compile --target=bun-windows-x64 --minify --sourcemap --outfile build/ghswitch.exe ./index.ts
+        
+        # Build for macOS x64
+        echo "🍎 Building for macOS x64..."
+        bun build --compile --target=bun-darwin-x64 --minify --sourcemap --outfile build/ghswitch-macos ./index.ts
+        
+        # Build for macOS ARM64
+        echo "🍎 Building for macOS ARM64..."
+        bun build --compile --target=bun-darwin-arm64 --minify --sourcemap --outfile build/ghswitch-macos-arm64 ./index.ts
+        
+        echo "✅ All builds completed!"
+
+    - name: Generate checksums
+      run: |
+        echo "📊 Generating checksums..."
+        cd build
+        sha256sum * > ../checksums.txt
+        cd ..
+        cat checksums.txt
+
+    - name: Get current date
+      id: date
+      run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+    - name: Create Release Draft
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.event.inputs.version }}
+        name: GhSwitch v${{ github.event.inputs.version }}
+        body: |
+          # 🎉 GhSwitch v${{ github.event.inputs.version }}
+          
+          **Beautiful GitHub Account Switcher - Standalone Binaries**
+          
+          Released on ${{ steps.date.outputs.date }}
+          
+          ## 📦 Downloads
+          
+          Choose the appropriate binary for your platform:
+          
+          | Platform | Binary | Size |
+          |----------|--------|------|
+          | 🐧 **Linux x64** | [`ghswitch`](https://github.com/podsni/GhSwitch/releases/download/v${{ github.event.inputs.version }}/ghswitch) | ~100MB |
+          | 🐧 **Linux ARM64** | [`ghswitch-linux-arm64`](https://github.com/podsni/GhSwitch/releases/download/v${{ github.event.inputs.version }}/ghswitch-linux-arm64) | ~93MB |
+          | 🪟 **Windows x64** | [`ghswitch.exe`](https://github.com/podsni/GhSwitch/releases/download/v${{ github.event.inputs.version }}/ghswitch.exe) | ~114MB |
+          | 🍎 **macOS Intel** | [`ghswitch-macos`](https://github.com/podsni/GhSwitch/releases/download/v${{ github.event.inputs.version }}/ghswitch-macos) | ~64MB |
+          | 🍎 **macOS Apple Silicon** | [`ghswitch-macos-arm64`](https://github.com/podsni/GhSwitch/releases/download/v${{ github.event.inputs.version }}/ghswitch-macos-arm64) | ~58MB |
+          
+          ## 🚀 Quick Installation
+          
+          ### One-line installation:
+          ```bash
+          curl -fsSL https://raw.githubusercontent.com/podsni/GhSwitch/main/install.sh | bash
+          ```
+          
+          ### Manual installation:
+          ```bash
+          # Download binary for your platform
+          wget https://github.com/podsni/GhSwitch/releases/download/v${{ github.event.inputs.version }}/ghswitch
+          
+          # Make executable
+          chmod +x ghswitch
+          
+          # Run
+          ./ghswitch
+          ```
+          
+          ### Global installation:
+          ```bash
+          # Linux/macOS
+          sudo cp ghswitch /usr/local/bin/
+          
+          # Windows (as Administrator)
+          copy ghswitch.exe C:\Windows\System32\
+          ```
+          
+          ## ✨ What's New in v${{ github.event.inputs.version }}
+          
+          <!-- Add changelog items here -->
+          - ✨ Beautiful terminal UI with Charm-inspired design
+          - 🔄 Multi-account GitHub switching per repository
+          - 🔐 Dual authentication: SSH keys and Personal Access Tokens
+          - 🎯 Active account detection with visual indicators
+          - 🧪 Connection testing for GitHub connectivity
+          - ⚡ Zero dependencies - single executable file
+          - 🖥️ Cross-platform support (Linux, Windows, macOS)
+          
+          ## 📋 Usage Examples
+          
+          ```bash
+          # Start GhSwitch
+          ./ghswitch
+          
+          # Navigate through the beautiful menu:
+          # ➕ Add account       - Add new GitHub account
+          # 🔄 Switch account    - Switch account for current repo
+          # 🧪 Test connection   - Test GitHub connectivity
+          # 📋 List accounts     - View all configured accounts
+          # 🔑 Generate SSH key  - Create new SSH key
+          # 📥 Import SSH key    - Import existing SSH key
+          # ✏️  Edit account     - Modify account settings
+          # 🗑️  Remove account   - Delete account configuration
+          ```
+          
+          ## 🔧 Verification
+          
+          Verify download integrity using checksums:
+          ```bash
+          # Download checksums
+          wget https://github.com/podsni/GhSwitch/releases/download/v${{ github.event.inputs.version }}/checksums.txt
+          
+          # Verify
+          sha256sum -c checksums.txt
+          ```
+          
+          ## 📚 Documentation
+          
+          - [📖 Complete Documentation](https://github.com/podsni/GhSwitch/blob/main/README.md)
+          - [📦 Distribution Guide](https://github.com/podsni/GhSwitch/blob/main/DISTRIBUTION.md)
+          - [🔧 Build Instructions](https://github.com/podsni/GhSwitch/blob/main/BUILD_SUMMARY.md)
+          
+          ## 🐛 Issues & Support
+          
+          Found a bug or need help? [Open an issue](https://github.com/podsni/GhSwitch/issues)
+          
+          ---
+          
+          **Full Changelog**: https://github.com/podsni/GhSwitch/compare/v1.0.0...v${{ github.event.inputs.version }}
+        draft: true
+        prerelease: ${{ github.event.inputs.prerelease }}
+        files: |
+          build/ghswitch
+          build/ghswitch-linux-arm64
+          build/ghswitch.exe
+          build/ghswitch-macos
+          build/ghswitch-macos-arm64
+          checksums.txt
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Output release info
+      run: |
+        echo "✅ Release draft created successfully!"
+        echo "📦 Version: v${{ github.event.inputs.version }}"
+        echo "🔗 Release URL: https://github.com/podsni/GhSwitch/releases/tag/v${{ github.event.inputs.version }}"
+        echo ""
+        echo "📝 Next steps:"
+        echo "1. Review the release draft on GitHub"
+        echo "2. Edit the changelog if needed"
+        echo "3. Publish the release when ready"

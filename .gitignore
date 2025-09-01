@@ -6,6 +6,17 @@ out
 dist
 *.tgz
 
+# build directory and compiled binaries
+build/*
+!build/.gitkeep
+ghswitch
+ghswitch-*
+*.exe
+
+# temporary files
+*.tmp
+checksums.txt
+
 # code coverage
 coverage
 *.lcov

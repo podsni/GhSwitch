@@ -1,0 +1,112 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Binaries
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Run tests (if any)
+      run: |
+        # Add test commands here when tests are available
+        echo "No tests configured yet"
+
+    - name: Build for current platform (Linux x64)
+      run: |
+        echo "🔨 Building GhSwitch for Linux x64..."
+        mkdir -p build
+        bun build --compile --target=bun-linux-x64 --minify --sourcemap --outfile build/ghswitch ./index.ts
+        echo "✅ Build completed successfully!"
+
+    - name: Test binary
+      run: |
+        echo "🧪 Testing the built binary..."
+        chmod +x build/ghswitch
+        timeout 10s ./build/ghswitch || true
+        echo "✅ Binary test completed!"
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ghswitch-linux-x64-${{ github.sha }}
+        path: build/ghswitch
+        retention-days: 7
+
+  build-all-platforms:
+    name: Build All Platforms (Manual)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Build all platform binaries
+      run: |
+        echo "🔨 Building GhSwitch for all platforms..."
+        mkdir -p build
+        
+        # Build for Linux x64
+        echo "🐧 Building for Linux x64..."
+        bun build --compile --target=bun-linux-x64 --minify --sourcemap --outfile build/ghswitch ./index.ts
+        
+        # Build for Linux ARM64
+        echo "🐧 Building for Linux ARM64..."
+        bun build --compile --target=bun-linux-arm64 --minify --sourcemap --outfile build/ghswitch-linux-arm64 ./index.ts
+        
+        # Build for Windows x64
+        echo "🪟 Building for Windows x64..."
+        bun build --compile --target=bun-windows-x64 --minify --sourcemap --outfile build/ghswitch.exe ./index.ts
+        
+        # Build for macOS x64
+        echo "🍎 Building for macOS x64..."
+        bun build --compile --target=bun-darwin-x64 --minify --sourcemap --outfile build/ghswitch-macos ./index.ts
+        
+        # Build for macOS ARM64
+        echo "🍎 Building for macOS ARM64..."
+        bun build --compile --target=bun-darwin-arm64 --minify --sourcemap --outfile build/ghswitch-macos-arm64 ./index.ts
+        
+        echo "✅ All builds completed!"
+
+    - name: Generate checksums
+      run: |
+        echo "📊 Generating checksums..."
+        cd build
+        sha256sum * > ../checksums.txt
+        cd ..
+        cat checksums.txt
+
+    - name: Upload all binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: ghswitch-all-platforms-${{ github.sha }}
+        path: |
+          build/
+          checksums.txt
+        retention-days: 30

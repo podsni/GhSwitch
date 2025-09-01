@@ -10,36 +10,89 @@
 
 </div>
 
+## 📦 Quick Start (Standalone Binary)
+
+**No installation required!** Download the pre-built binary for your platform:
+
+1. **Download** the appropriate binary:
+   - **Linux x64**: `ghswitch`
+   - **Linux ARM64**: `ghswitch-linux-arm64`
+   - **Windows x64**: `ghswitch.exe`
+   - **macOS Intel**: `ghswitch-macos`
+   - **macOS Apple Silicon**: `ghswitch-macos-arm64`
+
+2. **Make executable** (Linux/macOS):
+   ```bash
+   chmod +x ghswitch
+   ```
+
+3. **Run it**:
+   ```bash
+   ./ghswitch    # Linux/macOS
+   ghswitch.exe  # Windows
+   ```
+
+> 📋 See [DISTRIBUTION.md](DISTRIBUTION.md) for detailed installation instructions.
+
 ## 🌟 Features
 
 - 🎨 **Beautiful Terminal UI** - Inspired by [Charm](https://charm.sh) design principles
 - 🔄 **Multi-Account Support** - Effortlessly switch between different GitHub accounts
 - 🔐 **Dual Authentication** - Support for both SSH keys and Personal Access Tokens
 - 📁 **Per-Repository Configuration** - Different accounts for different repositories
-- ⚡ **Fast & Lightweight** - Built with Bun runtime for maximum performance
+- ⚡ **Zero Dependencies** - Single executable file, no runtime required
 - 🎯 **Interactive Interface** - Intuitive prompts and visual feedback
 - 🔑 **SSH Key Management** - Generate, import, and manage SSH keys
 - 🌈 **Colorful Output** - Rich colors and gradients for better UX
+- 🎯 **Active Account Detection** - See which account is currently active
 - Generate SSH key dan Import SSH private key (auto chmod, auto `.pub`, auto alias/penamaan berdasarkan username).
 - Test koneksi: uji SSH alias dan/atau token.
 
-## Prasyarat
+## 🛠️ Development Setup
+
+**Only needed if you want to build from source:**
+
+### Prasyarat
 
 - Bun v1.0+
 - Git
 - OpenSSH (`ssh`, `ssh-keygen`)
 - opsional: `curl` (untuk tes token)
 
-## Instalasi
+### Instalasi
 
 ```bash
+# Clone repository
+git clone https://github.com/podsni/GhSwitch.git
+cd GhSwitch
+
+# Install dependencies
 bun install
 ```
 
-## Menjalankan
+### Development
 
 ```bash
+# Run in development mode
 bun run index.ts
+
+# or
+bun run start
+```
+
+### Building Standalone Executables
+
+```bash
+# Build for current platform
+bun run build
+
+# Build for all platforms
+./build.sh
+
+# Individual platform builds
+bun run build:linux     # Linux x64
+bun run build:windows   # Windows x64
+bun run build:macos     # macOS x64 & ARM64
 ```
 
 Anda akan melihat menu interaktif di terminal.
