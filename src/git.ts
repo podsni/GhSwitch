@@ -83,3 +83,28 @@ export async function testTokenAuth(username: string, token: string) {
   const ok = code === "200";
   return { ok, message: `HTTP ${code}` };
 }
+
+export async function getCurrentGitUser(cwd = process.cwd()) {
+  try {
+    const userName = await run(["git", "config", "user.name"], { cwd });
+    const userEmail = await run(["git", "config", "user.email"], { cwd });
+    return { userName: userName.trim(), userEmail: userEmail.trim() };
+  } catch {
+    return null;
+  }
+}
+
+export async function getCurrentRemoteInfo(cwd = process.cwd()) {
+  try {
+    const remoteUrl = await getRemoteUrl("origin", cwd);
+    const repoPath = parseRepoFromUrl(remoteUrl || "");
+    const isSSH = remoteUrl?.startsWith("git@") || false;
+    return { 
+      remoteUrl, 
+      repoPath: repoPath?.replace(/\.git$/, ""), 
+      authType: isSSH ? "ssh" : "https" 
+    };
+  } catch {
+    return null;
+  }
+}

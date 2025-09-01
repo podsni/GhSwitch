@@ -11,6 +11,8 @@ import {
   setLocalGitIdentity,
   setRemoteUrl,
   withGitSuffix,
+  getCurrentGitUser,
+  getCurrentRemoteInfo,
 } from "./git";
 import { ensureSshConfigBlock, expandHome, generateSshKey, importPrivateKey, ensurePublicKey, testSshConnection, listSshPrivateKeys, suggestDestFilenames, SSH_DIR, ensureKeyPermissions } from "./ssh";
 import { testTokenAuth } from "./git";
@@ -29,13 +31,87 @@ import {
   colors 
 } from "./utils/ui";
 
+export async function detectActiveAccount(accounts: Account[], cwd = process.cwd()): Promise<string | null> {
+  try {
+    // Check if we're in a git repository
+    if (!(await isGitRepo(cwd))) {
+      return null;
+    }
+
+    // Get current git user and remote info
+    const gitUser = await getCurrentGitUser(cwd);
+    const remoteInfo = await getCurrentRemoteInfo(cwd);
+
+    if (!gitUser && !remoteInfo) {
+      return null;
+    }
+
+    // Try to match account based on git identity and remote URL
+    for (const account of accounts) {
+      let matches = 0;
+      let totalChecks = 0;
+
+      // Check git identity match
+      if (gitUser) {
+        if (account.gitUserName) {
+          totalChecks++;
+          if (gitUser.userName === account.gitUserName) matches++;
+        }
+        if (account.gitEmail) {
+          totalChecks++;
+          if (gitUser.userEmail === account.gitEmail) matches++;
+        }
+      }
+
+      // Check remote URL type match (SSH vs HTTPS)
+      if (remoteInfo) {
+        totalChecks++;
+        if (remoteInfo.authType === "ssh" && account.ssh) {
+          matches++;
+        } else if (remoteInfo.authType === "https" && account.token) {
+          matches++;
+        }
+      }
+
+      // If we have matches and they represent a significant portion
+      if (matches > 0 && matches >= Math.ceil(totalChecks * 0.5)) {
+        return account.name;
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function chooseAccount(accounts: Account[]) {
+  // Detect active account
+  const activeAccountName = await detectActiveAccount(accounts);
+  
   const { idx } = await prompts({
     type: "select",
     name: "idx",
-    message: "Choose account",
-    choices: accounts.map((a, i) => ({ title: a.name, value: i })),
+    message: stylePrompt("Choose account"),
+    choices: accounts.map((a, i) => {
+      const isActive = a.name === activeAccountName;
+      const statusIcon = isActive ? colors.success("●") : colors.muted("○");
+      const statusText = isActive ? colors.success(" (ACTIVE)") : "";
+      
+      // Build description with available methods
+      const methods = [];
+      if (a.ssh) methods.push("SSH");
+      if (a.token) methods.push("Token");
+      const methodsText = methods.length > 0 ? ` • ${methods.join(", ")}` : "";
+      
+      return {
+        title: `${statusIcon} ${a.name}${statusText}`,
+        value: i,
+        description: `${a.gitEmail || a.gitUserName || "No git identity"}${methodsText}`
+      };
+    }),
   });
+  
   if (idx === undefined) return null;
   return accounts[idx];
 }
@@ -117,14 +193,86 @@ export async function removeAccountFlow(cfg: AppConfig) {
 }
 
 export async function listAccounts(cfg: AppConfig) {
-  if (!cfg.accounts.length) return console.log("No accounts configured.");
-  for (const a of cfg.accounts) {
-    console.log(`- ${a.name}:`);
-    if (a.gitUserName) console.log(`  user.name: ${a.gitUserName}`);
-    if (a.gitEmail) console.log(`  user.email: ${a.gitEmail}`);
-    if (a.ssh) console.log(`  SSH: ${a.ssh.hostAlias ?? `github-${a.name}`} -> ${a.ssh.keyPath}`);
-    if (a.token) console.log(`  Token: username=${a.token.username} (token stored)`);
+  if (!cfg.accounts.length) {
+    showWarning("No accounts configured. Please add an account first.");
+    return;
   }
+  
+  showSection("Account Overview");
+  
+  // Detect active account
+  const activeAccountName = await detectActiveAccount(cfg.accounts);
+  
+  // Show repository info if we're in a git repo
+  const cwd = process.cwd();
+  if (await isGitRepo(cwd)) {
+    const remoteInfo = await getCurrentRemoteInfo(cwd);
+    const gitUser = await getCurrentGitUser(cwd);
+    
+    if (remoteInfo || gitUser) {
+      showBox(
+        [
+          remoteInfo ? `Repository: ${colors.accent(remoteInfo.repoPath || 'Unknown')}` : '',
+          remoteInfo ? `Auth Type: ${colors.secondary(remoteInfo.authType?.toUpperCase() || 'Unknown')}` : '',
+          gitUser ? `Git User: ${colors.text(gitUser.userName || 'Not set')}` : '',
+          gitUser ? `Git Email: ${colors.text(gitUser.userEmail || 'Not set')}` : '',
+          activeAccountName ? `Active Account: ${colors.success(activeAccountName)}` : colors.warning('No active account detected')
+        ].filter(Boolean).join('\n'),
+        { 
+          title: "Current Repository Status", 
+          type: activeAccountName ? "success" : "warning" 
+        }
+      );
+    }
+  }
+  
+  // Display all accounts with enhanced styling
+  cfg.accounts.forEach((account, index) => {
+    const isActive = account.name === activeAccountName;
+    const statusIcon = isActive ? colors.success("●") : colors.muted("○");
+    const statusText = isActive ? colors.success(" (ACTIVE)") : "";
+    
+    console.log();
+    console.log(`${statusIcon} ${colors.primary(`Account ${index + 1}:`)} ${colors.text(account.name)}${statusText}`);
+    
+    // Git Identity
+    if (account.gitUserName || account.gitEmail) {
+      console.log(colors.muted("  Git Identity:"));
+      if (account.gitUserName) console.log(colors.muted(`    Name: ${account.gitUserName}`));
+      if (account.gitEmail) console.log(colors.muted(`    Email: ${account.gitEmail}`));
+    }
+    
+    // SSH Configuration
+    if (account.ssh) {
+      console.log(colors.accent("  SSH Configuration:"));
+      console.log(colors.muted(`    Key Path: ${account.ssh.keyPath}`));
+      console.log(colors.muted(`    Host Alias: ${account.ssh.hostAlias || `github-${account.name}`}`));
+      
+      // Check if SSH key exists
+      const keyExists = fs.existsSync(expandHome(account.ssh.keyPath));
+      const keyStatus = keyExists ? colors.success("✓ Key exists") : colors.error("✗ Key missing");
+      console.log(colors.muted(`    Status: ${keyStatus}`));
+    }
+    
+    // Token Configuration  
+    if (account.token) {
+      console.log(colors.secondary("  Token Authentication:"));
+      console.log(colors.muted(`    Username: ${account.token.username}`));
+      console.log(colors.muted(`    Token: ${"*".repeat(20)} (stored)`));
+    }
+    
+    // Show available methods
+    const methods = [];
+    if (account.ssh) methods.push(colors.accent("SSH"));
+    if (account.token) methods.push(colors.secondary("Token"));
+    
+    if (methods.length > 0) {
+      console.log(colors.muted(`    Methods: ${methods.join(", ")}`));
+    }
+  });
+  
+  console.log();
+  showInfo(`Total accounts: ${cfg.accounts.length}`);
 }
 
 export async function switchForCurrentRepo(cfg: AppConfig) {
