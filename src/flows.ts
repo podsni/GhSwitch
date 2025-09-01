@@ -13,7 +13,7 @@ import {
   setRemoteUrl,
   withGitSuffix,
 } from "./git";
-import { ensureSshConfigBlock, expandHome, generateSshKey, importPrivateKey, ensurePublicKey, testSshConnection } from "./ssh";
+import { ensureSshConfigBlock, expandHome, generateSshKey, importPrivateKey, ensurePublicKey, testSshConnection, listSshPrivateKeys, suggestDestFilenames, SSH_DIR, ensureKeyPermissions } from "./ssh";
 import { testTokenAuth } from "./git";
 
 export async function chooseAccount(accounts: Account[]) {
@@ -42,15 +42,33 @@ export async function addAccountFlow(cfg: AppConfig) {
   const acc: Account = { name: base.name, gitUserName: base.gitUserName || undefined, gitEmail: base.gitEmail || undefined };
 
   if (base.methods.includes("ssh")) {
-    const sshAns = await prompts([
-      { type: "text", name: "keyPath", message: "SSH key path (e.g., ~/.ssh/id_ed25519_work)", validate: (v) => !!v || "Required" },
-      { type: "text", name: "hostAlias", message: "SSH host alias (default github-<label>)" },
-      { type: (prev: string) => (prev && !fs.existsSync(expandHome(prev)) ? "confirm" : null), name: "gen", message: "Key not found. Generate new ed25519 key?" },
+    const existingKeys = listSshPrivateKeys();
+    const keyChoices = [
+      ...existingKeys.map((p) => ({ title: p, value: p })),
+      { title: "Ketik path kunci manual…", value: "__manual__" },
+    ];
+    const sel = await prompts([
+      { type: keyChoices.length ? "autocomplete" : "text", name: "keySel", message: "Pilih SSH key di ~/.ssh atau ketik manual", choices: keyChoices },
     ]);
-    const keyPath = expandHome(sshAns.keyPath);
-    const alias = sshAns.hostAlias || `github-${base.name}`;
-    acc.ssh = { keyPath, hostAlias: alias };
-    if (!fs.existsSync(keyPath) && sshAns.gen) {
+    let keyPath: string | undefined;
+    if (sel.keySel && sel.keySel !== "__manual__") {
+      keyPath = expandHome(sel.keySel);
+    } else {
+      const manual = await prompts([
+        { type: "text", name: "keyPath", message: "SSH key path (mis. ~/.ssh/id_ed25519_work)", validate: (v) => !!v || "Required" },
+      ]);
+      keyPath = expandHome(manual.keyPath);
+    }
+    const more = await prompts([
+      { type: "text", name: "hostAlias", message: "SSH host alias (opsional)", initial: `github-${base.name}` },
+      { type: (!keyPath || !fs.existsSync(keyPath)) ? "confirm" : null, name: "gen", message: "Key tidak ditemukan. Generate baru (ed25519)?" },
+    ]);
+    const alias = more.hostAlias || `github-${base.name}`;
+    acc.ssh = { keyPath: keyPath!, hostAlias: alias };
+    if (keyPath && fs.existsSync(keyPath)) {
+      ensureKeyPermissions(keyPath);
+    }
+    if (keyPath && !fs.existsSync(keyPath) && more.gen) {
       await generateSshKey(keyPath, base.gitEmail || base.gitUserName || `${base.name}@github`);
       console.log(bold("Generated SSH key:"), keyPath);
       const pub = keyPath + ".pub";
@@ -141,7 +159,8 @@ export async function switchForCurrentRepo(cfg: AppConfig) {
         return;
       }
     }
-    // Use Host github.com (no alias) for simpler usage
+    // Ensure permissions and use Host github.com (no alias) for simpler usage
+    ensureKeyPermissions(keyPath);
     ensureSshConfigBlock("github.com", keyPath);
     const newUrl = `git@github.com:${repoPath}`;
     await setRemoteUrl(newUrl, "origin", cwd);
@@ -225,17 +244,27 @@ export async function importSshKeyFlow(cfg: AppConfig) {
   const acc = await chooseAccount(cfg.accounts);
   if (!acc) return;
 
+  const existingKeys = listSshPrivateKeys();
+  const srcChoices = existingKeys.map((p) => ({ title: p, value: p }));
+  const destSugs = suggestDestFilenames(acc.token?.username, acc.name);
+  const destChoices = destSugs.map((n) => ({ title: `${SSH_DIR}/${n}`, value: n }));
+
   const ans = await prompts([
     { type: "text", name: "username", message: "GitHub username untuk key ini", initial: acc.token?.username || "" },
-    { type: "text", name: "src", message: "Path private key yang sudah ada (mis. ~/.ssh/id_ed25519)" },
-    { type: "text", name: "dest", message: "Nama file tujuan di ~/.ssh", initial: (_: string, values: any) => `id_ed25519_${values.username || acc.name}` },
+    { type: srcChoices.length ? "autocomplete" : "text", name: "src", message: "Pilih/isi path private key yang sudah ada", choices: srcChoices },
+    { type: destChoices.length ? "autocomplete" : "text", name: "dest", message: "Nama file tujuan di ~/.ssh", choices: destChoices, initial: destSugs[0] || `id_ed25519_${acc.name}` , validate: (v: string) => (v && !/[\/]/.test(v)) || "Masukkan nama file saja, tanpa path" },
     { type: "confirm", name: "makeDefault", message: "Jadikan default (Host github.com) sekarang?", initial: true },
     { type: "confirm", name: "writeAlias", message: "Tambahkan juga alias Host khusus (opsional)?", initial: false },
     { type: (prev: boolean) => (prev ? "text" : null), name: "alias", message: "Nama alias Host", initial: (_: string, values: any) => `github-${values.username || acc.name}` },
     { type: "confirm", name: "test", message: "Test SSH connection setelah import?", initial: true },
   ]);
   if (!ans.src || !ans.dest) return;
-  const destFull = `${process.env.HOME}/.ssh/${ans.dest}`;
+  const destFull = `${SSH_DIR}/${ans.dest}`;
+  // Cegah overwrite tanpa konfirmasi jika file sudah ada
+  if (fs.existsSync(destFull)) {
+    const { overwrite } = await prompts({ type: "confirm", name: "overwrite", message: `${destFull} sudah ada. Timpa?`, initial: false });
+    if (!overwrite) return console.log("Dibatalkan.");
+  }
   const imported = importPrivateKey(ans.src, destFull);
   const pub = await ensurePublicKey(imported);
 
@@ -303,7 +332,8 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
     }
   }
 
-  // Set global host to always use this key for github.com
+  // Ensure strict permissions and set global host to always use this key for github.com
+  ensureKeyPermissions(keyPath);
   ensureSshConfigBlock("github.com", keyPath);
   console.log(bold("Updated ~/.ssh/config → Host github.com using:"), keyPath);
 

@@ -51,13 +51,14 @@ Host github-<label>
 1) Tambah Akun (Add account)
 - Pilih metode: SSH, Token, atau keduanya.
 - Isi `user.name`/`user.email` jika ingin di-set per repo saat switch.
-- SSH: masukkan path key (bisa generate baru jika belum ada).
+- SSH: pilih dari daftar key yang sudah ada di `~/.ssh` (auto-suggestion) atau ketik path manual; bisa generate baru jika belum ada.
 - Token: isi username + Personal Access Token (PAT).
 
 2) Import SSH Private Key (opsional, lebih mudah)
 - Pilih menu “Import SSH private key”.
 - Masukkan GitHub username → tool otomatis menyarankan nama file tujuan langsung di `~/.ssh`, contoh: `~/.ssh/id_ed25519_<username>`.
 - Masukkan path private key sumber (mis. `~/.ssh/id_ed25519`).
+- Auto-suggestion: Anda akan mendapat daftar key yang sudah ada di `~/.ssh` untuk dipilih, dan juga saran nama file tujuan yang umum dipakai.
 - Pilih apakah ingin menjadikannya default untuk Host `github.com` (disarankan agar mudah ganti-ganti).
 - Opsional: tambahkan juga alias Host khusus (mis. `github-<username>`), jika Anda tetap ingin alias.
 - Tool akan:
@@ -125,7 +126,9 @@ Host github.com
 
 - SSH test gagal:
   - Periksa `~/.ssh/config` apakah blok `Host` sudah benar.
-  - Pastikan permission: private `600`, public `644`.
+  - Pastikan permission: private `600`, public `644`. Tool ini mencoba mengatur permission otomatis saat generate/import/switch. Jika masih error:
+    - `chmod 600 ~/.ssh/<nama_key>`
+    - `chmod 644 ~/.ssh/<nama_key>.pub`
   - Pastikan public key sudah ditambahkan ke GitHub (Settings → SSH and GPG keys).
 
 - Token test gagal (HTTP != 200):

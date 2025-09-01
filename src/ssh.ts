@@ -41,6 +41,7 @@ export function ensureSshConfigBlock(alias: string, keyPath: string) {
     const sep = content && !content.endsWith("\n") ? "\n\n" : content ? "\n" : "";
     fs.writeFileSync(SSH_CONFIG_PATH, `${content}${sep}${block}\n`, "utf8");
   }
+  ensureSshDirAndConfigPermissions();
 }
 
 export async function generateSshKey(keyPath: string, comment: string) {
@@ -52,6 +53,7 @@ export async function generateSshKey(keyPath: string, comment: string) {
   if (fs.existsSync(pub)) {
     try { fs.chmodSync(pub, 0o644); } catch {}
   }
+  ensureSshDirAndConfigPermissions();
 }
 
 export function expandHome(p: string) {
@@ -67,6 +69,7 @@ export function importPrivateKey(srcPath: string, destPath: string) {
   fs.mkdirSync(dir, { recursive: true });
   fs.copyFileSync(from, to);
   fs.chmodSync(to, 0o600);
+  ensureSshDirAndConfigPermissions();
   return to;
 }
 
@@ -91,4 +94,48 @@ export async function testSshConnection(hostAlias: string) {
   const ok = /successfully authenticated|Hi\s+.+! You/.test(out);
   const hint = ok ? "SSH authentication ok" : `ssh exit ${code}`;
   return { ok: !!ok, message: out || hint };
+}
+
+export function ensureKeyPermissions(privateKeyPath: string) {
+  try {
+    fs.chmodSync(privateKeyPath, 0o600);
+  } catch {}
+  const pub = privateKeyPath + ".pub";
+  if (fs.existsSync(pub)) {
+    try { fs.chmodSync(pub, 0o644); } catch {}
+  }
+  ensureSshDirAndConfigPermissions();
+}
+
+export function ensureSshDirAndConfigPermissions() {
+  try { fs.chmodSync(SSH_DIR, 0o700); } catch {}
+  try {
+    if (fs.existsSync(SSH_CONFIG_PATH)) fs.chmodSync(SSH_CONFIG_PATH, 0o600);
+  } catch {}
+}
+
+export function listSshPrivateKeys() {
+  try {
+    const entries = fs.readdirSync(SSH_DIR, { withFileTypes: true });
+    return entries
+      .filter((e) => e.isFile())
+      .map((e) => path.join(SSH_DIR, e.name))
+      .filter((p) => !p.endsWith(".pub"))
+      .filter((p) => !/\b(known_hosts|config|authorized_keys|authorized_keys2)\b/.test(path.basename(p)));
+  } catch {
+    return [];
+  }
+}
+
+export function suggestDestFilenames(username?: string, label?: string) {
+  const base = username || label || "github";
+  const candidates = [
+    `id_ed25519_${base}`,
+    `id_ecdsa_${base}`,
+    `id_rsa_${base}`,
+    `id_ed25519_${(base + "").replace(/[^a-zA-Z0-9_-]+/g, "").toLowerCase()}`,
+    `id_ed25519_github`,
+  ];
+  // de-dup
+  return Array.from(new Set(candidates));
 }
