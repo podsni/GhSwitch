@@ -1,13 +1,25 @@
-# GitHub Account Switcher (Bun)
+# 🎯 GhSwitch - Beautiful GitHub Account Switcher
 
-CLI interaktif untuk mengelola banyak akun GitHub per-repo. Mendukung mode SSH (dengan alias host + key berbeda) dan HTTPS Token. Sudah termasuk fitur impor key (otomatis pakai nama berdasarkan username), tes koneksi, serta CRUD akun.
+<div align="center">
 
-## Fitur Utama
+[![Made with Bun](https://img.shields.io/badge/Made%20with-Bun-black?style=for-the-badge&logo=bun)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-blue?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Terminal UI](https://img.shields.io/badge/Terminal-UI-purple?style=for-the-badge&logo=terminal&logoColor=white)](https://charm.sh)
 
- - Switch akun per repository: ubah remote `origin` ke SSH (Host `github.com` default) atau HTTPS (token).
-- SSH: atur blok `Host` di `~/.ssh/config` dengan `IdentityFile` khusus per akun.
-- Token: simpan kredensial di `~/.git-credentials` (credential helper store).
-- CRUD Akun: Add, List, Edit, Remove.
+*✨ A beautiful, interactive CLI tool for seamlessly managing multiple GitHub accounts per repository*
+
+</div>
+
+## 🌟 Features
+
+- 🎨 **Beautiful Terminal UI** - Inspired by [Charm](https://charm.sh) design principles
+- 🔄 **Multi-Account Support** - Effortlessly switch between different GitHub accounts
+- 🔐 **Dual Authentication** - Support for both SSH keys and Personal Access Tokens
+- 📁 **Per-Repository Configuration** - Different accounts for different repositories
+- ⚡ **Fast & Lightweight** - Built with Bun runtime for maximum performance
+- 🎯 **Interactive Interface** - Intuitive prompts and visual feedback
+- 🔑 **SSH Key Management** - Generate, import, and manage SSH keys
+- 🌈 **Colorful Output** - Rich colors and gradients for better UX
 - Generate SSH key dan Import SSH private key (auto chmod, auto `.pub`, auto alias/penamaan berdasarkan username).
 - Test koneksi: uji SSH alias dan/atau token.
 

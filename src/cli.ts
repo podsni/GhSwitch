@@ -1,33 +1,95 @@
 import prompts from "prompts";
 import { loadConfig } from "./config";
 import { addAccountFlow, listAccounts, removeAccountFlow, switchForCurrentRepo, chooseAccount } from "./flows";
-import { bold } from "kleur/colors";
 import { generateSshKey } from "./ssh";
+import { 
+  showTitle, 
+  showSection, 
+  stylePrompt, 
+  showSuccess, 
+  showError, 
+  showSeparator,
+  showWarning,
+  colors 
+} from "./utils/ui";
 
 export async function main() {
+  // Show beautiful title
+  showTitle();
+  
   const cfg = loadConfig();
+  
   while (true) {
+    showSection("Main Menu");
+    
     const { action } = await prompts({
       type: "select",
       name: "action",
-      message: "GitHub Switch — choose an action",
+      message: stylePrompt("Choose an action"),
       choices: [
-        { title: "Switch account for current repo", value: "switch" },
-        { title: "List accounts", value: "list" },
-        { title: "Add account", value: "add" },
-        { title: "Edit account", value: "edit" },
-        { title: "Remove account", value: "remove" },
-        { title: "Generate SSH key for an account", value: "genkey" },
-        { title: "Import SSH private key", value: "importkey" },
-        { title: "Switch SSH globally (Host github.com)", value: "globalssh" },
-        { title: "Test connection", value: "test" },
-        { title: "Exit", value: "exit" },
+        { 
+          title: colors.primary("🔄 Switch account for current repo"), 
+          value: "switch",
+          description: "Change GitHub account for this repository"
+        },
+        { 
+          title: colors.accent("📋 List accounts"), 
+          value: "list",
+          description: "View all configured accounts"
+        },
+        { 
+          title: colors.success("➕ Add account"), 
+          value: "add",
+          description: "Configure a new GitHub account"
+        },
+        { 
+          title: colors.secondary("✏️  Edit account"), 
+          value: "edit",
+          description: "Modify existing account settings"
+        },
+        { 
+          title: colors.warning("🗑️  Remove account"), 
+          value: "remove",
+          description: "Delete an account configuration"
+        },
+        { 
+          title: colors.accent("🔑 Generate SSH key"), 
+          value: "genkey",
+          description: "Create new SSH key for an account"
+        },
+        { 
+          title: colors.secondary("📥 Import SSH private key"), 
+          value: "importkey",
+          description: "Import existing SSH key"
+        },
+        { 
+          title: colors.primary("🌐 Switch SSH globally"), 
+          value: "globalssh",
+          description: "Change global SSH configuration"
+        },
+        { 
+          title: colors.accent("🧪 Test connection"), 
+          value: "test",
+          description: "Verify account authentication"
+        },
+        { 
+          title: colors.muted("🚪 Exit"), 
+          value: "exit",
+          description: "Close the application"
+        },
       ],
       initial: 0,
     });
 
-    if (action === "exit" || action === undefined) break;
+    if (action === "exit" || action === undefined) {
+      showSeparator();
+      showSuccess("Thank you for using GhSwitch! 👋");
+      break;
+    }
+    
     try {
+      showSeparator();
+      
       if (action === "switch") await switchForCurrentRepo(cfg);
       if (action === "list") await listAccounts(cfg);
       if (action === "add") await addAccountFlow(cfg);
@@ -38,15 +100,15 @@ export async function main() {
       if (action === "remove") await removeAccountFlow(cfg);
       if (action === "genkey") {
         if (!cfg.accounts.length) {
-          console.log("No accounts. Add one first.");
+          showError("No accounts found. Please add an account first.");
         } else {
           const acc = await chooseAccount(cfg.accounts);
           if (acc?.ssh) {
             const keyPath = acc.ssh.keyPath;
             await generateSshKey(keyPath, acc.gitEmail || acc.gitUserName || `${acc.name}@github`);
-            console.log(bold("Generated SSH key:"), keyPath);
+            showSuccess(`Generated SSH key: ${keyPath}`);
           } else {
-            console.log("Selected account has no SSH configured.");
+            showWarning("Selected account has no SSH configuration.");
           }
         }
       }
@@ -63,7 +125,16 @@ export async function main() {
         await switchGlobalSshFlow(cfg);
       }
     } catch (e: any) {
-      console.error("Error:", e?.message || String(e));
+      showError(`Operation failed: ${e?.message || String(e)}`);
     }
+    
+    // Add a pause before showing menu again
+    console.log();
+    await prompts({
+      type: "text",
+      name: "continue",
+      message: colors.muted("Press Enter to continue..."),
+      initial: ""
+    });
   }
 }

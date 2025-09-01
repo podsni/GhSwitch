@@ -1,5 +1,4 @@
 import prompts from "prompts";
-import { bold } from "kleur/colors";
 import * as fs from "fs";
 
 import type { AppConfig, Account } from "./types";
@@ -15,6 +14,20 @@ import {
 } from "./git";
 import { ensureSshConfigBlock, expandHome, generateSshKey, importPrivateKey, ensurePublicKey, testSshConnection, listSshPrivateKeys, suggestDestFilenames, SSH_DIR, ensureKeyPermissions } from "./ssh";
 import { testTokenAuth } from "./git";
+import { 
+  showSection, 
+  showAccount, 
+  showList, 
+  stylePrompt, 
+  showSuccess, 
+  showError, 
+  showWarning, 
+  showInfo,
+  showBox,
+  showRepoStatus,
+  createSpinner,
+  colors 
+} from "./utils/ui";
 
 export async function chooseAccount(accounts: Account[]) {
   const { idx } = await prompts({
@@ -70,9 +83,9 @@ export async function addAccountFlow(cfg: AppConfig) {
     }
     if (keyPath && !fs.existsSync(keyPath) && more.gen) {
       await generateSshKey(keyPath, base.gitEmail || base.gitUserName || `${base.name}@github`);
-      console.log(bold("Generated SSH key:"), keyPath);
+      showSuccess(`Generated SSH key: ${keyPath}`);
       const pub = keyPath + ".pub";
-      if (fs.existsSync(pub)) console.log("Public key:", pub);
+      if (fs.existsSync(pub)) showInfo(`Public key: ${pub}`);
     }
   }
 
@@ -86,7 +99,7 @@ export async function addAccountFlow(cfg: AppConfig) {
 
   cfg.accounts.push(acc);
   saveConfig(cfg);
-  console.log(bold("Account saved:"), acc.name);
+  showSuccess(`Account saved: ${acc.name}`);
 }
 
 export async function removeAccountFlow(cfg: AppConfig) {
@@ -100,7 +113,7 @@ export async function removeAccountFlow(cfg: AppConfig) {
   if (idx === undefined) return;
   const [removed] = cfg.accounts.splice(idx, 1);
   saveConfig(cfg);
-  console.log(bold("Removed:"), removed.name);
+  showSuccess(`Removed account: ${removed?.name || 'Unknown'}`);
 }
 
 export async function listAccounts(cfg: AppConfig) {
@@ -150,12 +163,25 @@ export async function switchForCurrentRepo(cfg: AppConfig) {
   if (chosen === "ssh" && acc.ssh) {
     const keyPath = expandHome(acc.ssh.keyPath);
     if (!fs.existsSync(keyPath)) {
-      const { gen } = await prompts({ type: "confirm", name: "gen", message: `SSH key not found at ${keyPath}. Generate now?` });
+      const { gen } = await prompts({ 
+        type: "confirm", 
+        name: "gen", 
+        message: stylePrompt(`SSH key not found at ${keyPath}. Generate now?`, "confirm") 
+      });
       if (gen) {
-        await generateSshKey(keyPath, acc.gitEmail || acc.gitUserName || `${acc.name}@github`);
-        console.log(bold("Generated SSH key:"), keyPath);
+        const spinner = createSpinner("Generating SSH key...");
+        spinner.start();
+        
+        try {
+          await generateSshKey(keyPath, acc.gitEmail || acc.gitUserName || `${acc.name}@github`);
+          spinner.stop();
+          showSuccess(`Generated SSH key: ${keyPath}`);
+        } catch (error) {
+          spinner.stop();
+          throw error;
+        }
       } else {
-        console.log("Aborted.");
+        showWarning("Operation cancelled.");
         return;
       }
     }
@@ -165,9 +191,11 @@ export async function switchForCurrentRepo(cfg: AppConfig) {
     const newUrl = `git@github.com:${repoPath}`;
     await setRemoteUrl(newUrl, "origin", cwd);
     await setLocalGitIdentity(acc.gitUserName, acc.gitEmail, cwd);
-    console.log(bold("Switched origin to SSH using Host github.com"));
-    console.log("Remote:", newUrl);
-    console.log("Git identity set (repo-local)");
+    
+    showBox(
+      `Repository switched to SSH authentication\n\nRemote: ${newUrl}\nAccount: ${acc.name}`,
+      { title: "SSH Configuration Applied", type: "success" }
+    );
     return;
   }
 
@@ -176,10 +204,11 @@ export async function switchForCurrentRepo(cfg: AppConfig) {
     await setRemoteUrl(httpsUrl, "origin", cwd);
     await setLocalGitIdentity(acc.gitUserName, acc.gitEmail, cwd);
     await ensureCredentialStore(acc.token.username, acc.token.token);
-    console.log(bold("Switched origin to HTTPS (token)"));
-    console.log("Remote:", httpsUrl);
-    console.log("Stored token for github.com in ~/.git-credentials (plaintext)");
-    console.log("Security note: consider using SSH for stronger local security.");
+    
+    showBox(
+      `Repository switched to HTTPS token authentication\n\nRemote: ${httpsUrl}\nAccount: ${acc.name}\n\nNote: Token stored in ~/.git-credentials (plaintext)\nConsider using SSH for stronger local security.`,
+      { title: "Token Configuration Applied", type: "success" }
+    );
     return;
   }
 }
@@ -236,7 +265,7 @@ export async function editAccountFlow(cfg: AppConfig) {
   }
 
   saveConfig(cfg);
-  console.log(bold("Updated account:"), acc.name);
+  showSuccess(`Updated account: ${acc.name}`);
 }
 
 export async function importSshKeyFlow(cfg: AppConfig) {
@@ -274,44 +303,113 @@ export async function importSshKeyFlow(cfg: AppConfig) {
   };
   if (ans.makeDefault) {
     ensureSshConfigBlock("github.com", acc.ssh.keyPath);
-    console.log(bold("Set as default Host github.com"));
+    showSuccess("Set as default Host github.com");
   }
   if (ans.writeAlias && ans.alias) {
     ensureSshConfigBlock(acc.ssh.hostAlias!, acc.ssh.keyPath);
-    console.log(bold(`Alias Host ditambahkan: ${acc.ssh.hostAlias}`));
+    showSuccess(`Alias Host added: ${acc.ssh.hostAlias}`);
   }
   saveConfig(cfg);
-  console.log(bold("Imported SSH key:"), imported);
-  console.log("Public key:", pub);
+  showSuccess(`Imported SSH key: ${imported}`);
+  showInfo(`Public key: ${pub}`);
 
   if (ans.test) {
     const host = ans.makeDefault ? "github.com" : (ans.writeAlias && ans.alias ? ans.alias : (acc.ssh.hostAlias || "github.com"));
-    const res = await testSshConnection(host);
-    console.log(res.ok ? bold(`SSH test OK (${host})`) : bold(`SSH test FAILED (${host})`));
-    console.log(res.message);
+    const spinner = createSpinner(`Testing SSH connection to ${host}...`);
+    spinner.start();
+    
+    try {
+      const res = await testSshConnection(host);
+      spinner.stop();
+      
+      if (res.ok) {
+        showSuccess(`SSH test OK (${host})`);
+      } else {
+        showError(`SSH test FAILED (${host})`);
+      }
+      
+      if (res.message) {
+        console.log(colors.muted(res.message));
+      }
+    } catch (error) {
+      spinner.stop();
+      showError("SSH test failed with error");
+    }
   }
 }
 
 export async function testConnectionFlow(cfg: AppConfig) {
-  if (!cfg.accounts.length) return console.log("No accounts. Add one first.");
+  if (!cfg.accounts.length) {
+    showWarning("No accounts configured. Please add an account first.");
+    return;
+  }
+  
+  showSection("Test Connection");
+  
   const acc = await chooseAccount(cfg.accounts);
   if (!acc) return;
+  
   const methods = [
-    ...(acc.ssh ? [{ title: "SSH", value: "ssh" as const }] : []),
-    ...(acc.token ? [{ title: "Token", value: "token" as const }] : []),
+    ...(acc.ssh ? [{ title: `${colors.accent("🔑")} SSH`, value: "ssh" as const }] : []),
+    ...(acc.token ? [{ title: `${colors.secondary("🔐")} Token`, value: "token" as const }] : []),
   ];
-  if (!methods.length) return console.log("Selected account has no methods configured.");
-  const { method } = await prompts({ type: methods.length === 1 ? null : "select", name: "method", message: "Test which method?", choices: methods });
-  const chosen = (methods.length === 1 ? methods[0].value : method) as "ssh" | "token";
+  
+  if (!methods.length) {
+    showError("Selected account has no authentication methods configured.");
+    return;
+  }
+  
+  const { method } = await prompts({ 
+    type: methods.length === 1 ? null : "select", 
+    name: "method", 
+    message: stylePrompt("Test which authentication method?"), 
+    choices: methods 
+  });
+  
+  const chosen = (methods.length === 1 ? methods[0]?.value : method) as "ssh" | "token";
 
   if (chosen === "ssh" && acc.ssh) {
-    const res = await testSshConnection(acc.ssh.hostAlias!);
-    console.log(res.ok ? bold("SSH test OK") : bold("SSH test FAILED"));
-    console.log(res.message);
+    const spinner = createSpinner("Testing SSH connection...");
+    spinner.start();
+    
+    try {
+      const res = await testSshConnection(acc.ssh.hostAlias!);
+      spinner.stop();
+      
+      if (res.ok) {
+        showSuccess("SSH connection test passed!");
+      } else {
+        showError("SSH connection test failed!");
+      }
+      
+      if (res.message) {
+        console.log(colors.muted(res.message));
+      }
+    } catch (error) {
+      spinner.stop();
+      showError("SSH test failed with error");
+    }
   } else if (chosen === "token" && acc.token) {
-    const res = await testTokenAuth(acc.token.username, acc.token.token);
-    console.log(res.ok ? bold("Token test OK") : bold("Token test FAILED"));
-    console.log(res.message);
+    const spinner = createSpinner("Testing token authentication...");
+    spinner.start();
+    
+    try {
+      const res = await testTokenAuth(acc.token.username, acc.token.token);
+      spinner.stop();
+      
+      if (res.ok) {
+        showSuccess("Token authentication test passed!");
+      } else {
+        showError("Token authentication test failed!");
+      }
+      
+      if (res.message) {
+        console.log(colors.muted(res.message));
+      }
+    } catch (error) {
+      spinner.stop();
+      showError("Token test failed with error");
+    }
   }
 }
 
@@ -335,12 +433,35 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
   // Ensure strict permissions and set global host to always use this key for github.com
   ensureKeyPermissions(keyPath);
   ensureSshConfigBlock("github.com", keyPath);
-  console.log(bold("Updated ~/.ssh/config → Host github.com using:"), keyPath);
+  showSuccess(`Updated ~/.ssh/config → Host github.com using: ${keyPath}`);
 
-  const { doTest } = await prompts({ type: "confirm", name: "doTest", message: "Test SSH connection now?", initial: true });
+  const { doTest } = await prompts({ 
+    type: "confirm", 
+    name: "doTest", 
+    message: stylePrompt("Test SSH connection now?", "confirm"), 
+    initial: true 
+  });
+  
   if (doTest) {
-    const res = await testSshConnection("github.com");
-    console.log(res.ok ? bold("SSH test OK") : bold("SSH test FAILED"));
-    console.log(res.message);
+    const spinner = createSpinner("Testing SSH connection to github.com...");
+    spinner.start();
+    
+    try {
+      const res = await testSshConnection("github.com");
+      spinner.stop();
+      
+      if (res.ok) {
+        showSuccess("SSH test OK");
+      } else {
+        showError("SSH test FAILED");
+      }
+      
+      if (res.message) {
+        console.log(colors.muted(res.message));
+      }
+    } catch (error) {
+      spinner.stop();
+      showError("SSH test failed with error");
+    }
   }
 }
