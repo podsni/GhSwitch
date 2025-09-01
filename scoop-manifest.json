@@ -1,0 +1,15 @@
+{
+    "version": "1.2.0",
+    "description": "Beautiful GitHub Account Switcher - Interactive CLI tool for managing multiple GitHub accounts",
+    "homepage": "https://github.com/podsni/GhSwitch",
+    "license": "MIT",
+    "url": "https://github.com/podsni/GhSwitch/releases/download/v1.2.0/ghswitch.exe",
+    "hash": "REPLACE_WITH_ACTUAL_SHA256",
+    "bin": "ghswitch.exe",
+    "checkver": {
+        "github": "https://github.com/podsni/GhSwitch"
+    },
+    "autoupdate": {
+        "url": "https://github.com/podsni/GhSwitch/releases/download/v$version/ghswitch.exe"
+    }
+}

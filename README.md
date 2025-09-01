@@ -1,6 +1,42 @@
 # 🎯 GhSwitch - Beautiful GitHub Account Switcher
 
-<div align="center">
+<## 🚀 Quick Start
+
+**After installation, usage is simple:**
+
+```bash
+# Start interactive mode
+ghswitch
+
+# Check version
+ghswitch --version
+
+# Get help
+ghswitch --help
+```
+
+This will launch the interactive menu where you can:
+
+1. **Add your GitHub accounts** (SSH keys and/or tokens)
+2. **Switch between accounts** in any repository
+3. **Test connections** to verify everything works
+4. **Manage account settings** as needed
+
+### First Time Setup
+
+1. Run `ghswitch` in your terminal
+2. Choose "➕ Add account"
+3. Enter your GitHub account details
+4. Choose authentication method (SSH or Token)
+5. Follow the prompts to configure
+
+### Switching Accounts
+
+1. Navigate to any Git repository
+2. Run `ghswitch`
+3. Choose "🔄 Switch account for current repo"
+4. Select your desired account
+5. Done! Your repository now uses the selected account">
 
 [![Made with Bun](https://img.shields.io/badge/Made%20with-Bun-black?style=for-the-badge&logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-blue?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
@@ -10,29 +46,83 @@
 
 </div>
 
-## 📦 Quick Start (Standalone Binary)
+## 📦 Installation
 
-**No installation required!** Download the pre-built binary for your platform:
+### 🚀 One-line Install (Recommended)
 
-1. **Download** the appropriate binary:
-   - **Linux x64**: `ghswitch`
-   - **Linux ARM64**: `ghswitch-linux-arm64`
-   - **Windows x64**: `ghswitch.exe`
-   - **macOS Intel**: `ghswitch-macos`
-   - **macOS Apple Silicon**: `ghswitch-macos-arm64`
+```bash
+curl -fsSL https://raw.githubusercontent.com/podsni/GhSwitch/main/install-curl.sh | bash
+```
 
-2. **Make executable** (Linux/macOS):
-   ```bash
-   chmod +x ghswitch
-   ```
+### 📦 Package Managers
 
-3. **Run it**:
-   ```bash
-   ./ghswitch    # Linux/macOS
-   ghswitch.exe  # Windows
-   ```
+**NPM/Yarn/PNPM**
+```bash
+npm install -g ghswitch
+yarn global add ghswitch
+pnpm add -g ghswitch
+```
 
-> 📋 See [DISTRIBUTION.md](DISTRIBUTION.md) for detailed installation instructions.
+**Bun (Recommended)**
+```bash
+bun install -g ghswitch
+```
+
+> 🐚 **Shell Compatibility**: Works with bash, zsh, fish, and other POSIX-compatible shells. Automatically detects and uses the best runtime (Bun → Node.js → fallback).
+
+**Homebrew (macOS/Linux)**
+```bash
+brew tap podsni/ghswitch
+brew install ghswitch
+```
+
+**Arch Linux (AUR)**
+```bash
+yay -S ghswitch-bin
+paru -S ghswitch-bin
+```
+
+**Scoop (Windows)**
+```powershell
+scoop bucket add podsni https://github.com/podsni/scoop-ghswitch
+scoop install ghswitch
+```
+
+### 📥 Manual Download
+
+Download pre-built binaries from [GitHub Releases](https://github.com/podsni/GhSwitch/releases/latest):
+
+- **Linux x64**: `ghswitch`
+- **Linux ARM64**: `ghswitch-linux-arm64`  
+- **Windows x64**: `ghswitch.exe`
+- **macOS Intel**: `ghswitch-macos`
+- **macOS Apple Silicon**: `ghswitch-macos-arm64`
+
+```bash
+# Make executable and move to PATH
+chmod +x ghswitch
+sudo mv ghswitch /usr/local/bin/
+```
+
+> 📋 See [INSTALL.md](INSTALL.md) for all installation methods and troubleshooting.
+
+### 📥 Manual Download
+
+Download pre-built binaries from [GitHub Releases](https://github.com/podsni/GhSwitch/releases/latest):
+
+- **Linux x64**: `ghswitch`
+- **Linux ARM64**: `ghswitch-linux-arm64`
+- **Windows x64**: `ghswitch.exe`
+- **macOS Intel**: `ghswitch-macos`
+- **macOS Apple Silicon**: `ghswitch-macos-arm64`
+
+```bash
+# Make executable and move to PATH
+chmod +x ghswitch
+sudo mv ghswitch /usr/local/bin/
+```
+
+> 📋 See [INSTALL.md](INSTALL.md) for all installation methods and troubleshooting.
 
 ## 🌟 Features
 
@@ -188,41 +278,53 @@ Host github.com
 - Jika punya beberapa key, pastikan setiap repo diarahkan ke alias yang tepat.
 - Untuk token, beri scope minimal yang diperlukan.
 
-## Troubleshooting
+## 🎯 Use Cases
 
-- SSH test gagal:
-  - Periksa `~/.ssh/config` apakah blok `Host` sudah benar.
-  - Pastikan permission: private `600`, public `644`. Tool ini mencoba mengatur permission otomatis saat generate/import/switch. Jika masih error:
-    - `chmod 600 ~/.ssh/<nama_key>`
-    - `chmod 644 ~/.ssh/<nama_key>.pub`
-  - Pastikan public key sudah ditambahkan ke GitHub (Settings → SSH and GPG keys).
+- **Personal & Work Accounts**: Keep your personal and work GitHub accounts separate
+- **Multiple Organizations**: Switch between different organization accounts
+- **Client Projects**: Use different accounts for different client repositories
+- **Open Source & Private**: Different identities for public and private projects
 
-- Token test gagal (HTTP != 200):
-  - Cek username/token benar dan token belum expired.
-  - Periksa scope token sesuai kebutuhan (read/write repo, dsb.).
+## 🔧 Advanced Features
 
-- Repo tidak punya remote:
-  - Tool akan meminta `owner/repo`. Pastikan format benar, contoh: `myorg/myrepo`.
+- **SSH Key Generation**: Generate Ed25519 keys directly from the CLI
+- **SSH Key Import**: Import existing keys with automatic setup
+- **Global SSH Switching**: Change SSH identity globally for all repositories
+- **Connection Testing**: Verify SSH and token connectivity
+- **Automatic Permissions**: Proper file permissions set automatically
+- **Cross-Platform Paths**: Handles Windows, Linux, and macOS path differences
 
-## Uninstall / Pembersihan
+## 📚 Documentation
 
-- Hapus konfigurasi: `rm -f ~/.config/github-switch/config.json`.
-- Mode Token: hapus baris terkait dari `~/.git-credentials` bila perlu.
-- Mode SSH: hapus blok `Host` relevan dari `~/.ssh/config` bila ingin.
+- [Installation Guide](INSTALL.md) - All installation methods
+- [Distribution Guide](DISTRIBUTION.md) - For package maintainers
+- [Build Instructions](BUILD_ORGANIZATION.md) - Building from source
+- [Release Process](RELEASE_SETUP_COMPLETE.md) - For maintainers
 
-## Struktur Proyek (Singkat)
+## 🤝 Contributing
 
-- `index.ts` — entry, memanggil CLI utama.
-- `src/cli.ts` — menu interaktif.
-- `src/flows.ts` — implementasi alur: CRUD, switch, import, test.
-- `src/ssh.ts` — util SSH: keygen, import, chmod, tulis `~/.ssh/config`.
-- `src/git.ts` — util Git: remote, identity, credential store, tes token.
-- `src/config.ts` — load/save config JSON.
-- `src/types.ts` — definisi tipe.
-- `src/utils/shell.ts` — helper eksekusi perintah shell.
+Contributions are welcome! Please check our [Contributing Guidelines](CONTRIBUTING.md) and feel free to:
 
-—
+- Report bugs by opening an [issue](https://github.com/podsni/GhSwitch/issues)
+- Request features through [discussions](https://github.com/podsni/GhSwitch/discussions)
+- Submit pull requests with improvements
 
-Proyek ini berjalan di [Bun](https://bun.com).
-# GhSwitch
-# GhSwitch
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Bun](https://bun.sh) for lightning-fast performance
+- UI inspired by [Charm](https://charm.sh) design principles
+- Thanks to all contributors who help make this tool better
+
+---
+
+<div align="center">
+
+**Made with ❤️ by [podsni](https://github.com/podsni)**
+
+⭐ If you find GhSwitch useful, please give it a star on GitHub!
+
+</div>

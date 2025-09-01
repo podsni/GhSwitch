@@ -2,6 +2,20 @@
 
 All notable changes to GhSwitch will be documented in this file.
 
+## [v1.2.1] - 2025-09-01
+
+### 🆕 Added
+- **Command Line Arguments Support**: Added `--version` and `--help` flags
+- **Version Display**: `ghswitch --version` now shows clean version information
+- **Help Command**: `ghswitch --help` displays usage instructions and examples
+- **NPM Publishing**: Package now available on NPM registry
+- **Cross-Shell Compatibility**: Enhanced compatibility with bash, zsh, and other shells
+
+### 🔧 Improved
+- Added proper command line argument parsing
+- Enhanced user experience with helpful command options
+- Better error messages and usage instructions
+
 ## [v1.2.0] - 2024-01-XX
 
 ### 🆕 Added

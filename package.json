@@ -1,9 +1,35 @@
 {
-  "name": "switchaccount",
-  "version": "1.2.0",
+  "name": "ghswitch",
+  "version": "1.2.1",
+  "description": "Beautiful GitHub Account Switcher - Interactive CLI tool for managing multiple GitHub accounts per repository",
   "module": "index.ts",
   "type": "module",
-  "private": true,
+  "keywords": ["github", "git", "account", "switcher", "ssh", "cli", "terminal", "bun"],
+  "author": "podsni",
+  "license": "MIT",
+  "homepage": "https://github.com/podsni/GhSwitch",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/podsni/GhSwitch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/podsni/GhSwitch/issues"
+  },
+  "bin": {
+    "ghswitch": "./index.ts"
+  },
+  "files": [
+    "index.ts",
+    "src/**/*",
+    "README.md",
+    "CHANGELOG.md",
+    "ghswitch.sh"
+  ],
+  "engines": {
+    "bun": ">=1.0.0",
+    "node": ">=18.0.0"
+  },
+  "preferGlobal": true,
   "scripts": {
     "start": "bun run index.ts",
     "build": "mkdir -p build && bun build --compile --minify --sourcemap --outfile build/ghswitch ./index.ts",
@@ -15,13 +41,17 @@
     "build:all": "bun run build:linux && bun run build:linux-arm && bun run build:windows && bun run build:macos && bun run build:macos-arm",
     "release": "./release.sh",
     "release:draft": "./release.sh --draft",
-    "clean": "rm -f build/* checksums.txt"
+    "clean": "rm -f build/* checksums.txt",
+    "prepublishOnly": "chmod +x index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "tsx": "^4.0.0"
   },
   "dependencies": {
     "@types/figlet": "^1.7.0",

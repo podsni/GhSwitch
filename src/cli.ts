@@ -13,7 +13,55 @@ import {
   colors 
 } from "./utils/ui";
 
+// Get version from package.json
+const PACKAGE_VERSION = "1.2.1";
+
+function showVersion() {
+  console.log(`ghswitch v${PACKAGE_VERSION}`);
+  console.log("Beautiful GitHub Account Switcher");
+  console.log("Interactive CLI tool for managing multiple GitHub accounts per repository");
+  console.log("");
+  console.log("GitHub: https://github.com/podsni/GhSwitch");
+  console.log("NPM: https://www.npmjs.com/package/ghswitch");
+}
+
+function showHelp() {
+  console.log("GhSwitch - GitHub Account Switcher");
+  console.log("");
+  console.log("Usage:");
+  console.log("  ghswitch              Start interactive mode");
+  console.log("  ghswitch --version    Show version information");
+  console.log("  ghswitch --help       Show this help message");
+  console.log("");
+  console.log("Interactive Commands:");
+  console.log("  • Add account         Add a new GitHub account");
+  console.log("  • Switch account      Switch account for current repository");
+  console.log("  • List accounts       Show all configured accounts");
+  console.log("  • Remove account      Remove an existing account");
+  console.log("  • Test connection     Test SSH/token connectivity");
+  console.log("  • Generate SSH key    Create new SSH key for an account");
+  console.log("");
+  console.log("Examples:");
+  console.log("  ghswitch              # Start interactive menu");
+  console.log("  npm install -g ghswitch  # Install globally");
+  console.log("");
+  console.log("Documentation: https://github.com/podsni/GhSwitch#readme");
+}
+
 export async function main() {
+  // Handle command line arguments
+  const args = process.argv.slice(2);
+  
+  if (args.includes('--version') || args.includes('-v')) {
+    showVersion();
+    return;
+  }
+  
+  if (args.includes('--help') || args.includes('-h')) {
+    showHelp();
+    return;
+  }
+  
   // Show beautiful title
   showTitle();
   

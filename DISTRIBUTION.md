@@ -2,9 +2,54 @@
 
 A beautiful, interactive CLI tool for managing multiple GitHub accounts per repository.
 
-## 📦 Standalone Binaries
+## 📦 Installation Methods
 
-GhSwitch is distributed as standalone executables that require no dependencies - not even Bun or Node.js!
+### 🚀 One-line Install (Recommended)
+
+**Curl (Cross-platform)**
+```bash
+curl -fsSL https://raw.githubusercontent.com/podsni/GhSwitch/main/install-curl.sh | bash
+```
+
+**Wget (Linux)**
+```bash
+wget -qO- https://raw.githubusercontent.com/podsni/GhSwitch/main/install-curl.sh | bash
+```
+
+This automatically detects your platform and installs the appropriate binary.
+
+### 📦 Package Managers
+
+**NPM/Yarn/PNPM/Bun**
+```bash
+npm install -g ghswitch
+yarn global add ghswitch
+pnpm add -g ghswitch
+bun install -g ghswitch
+```
+
+**Homebrew (macOS/Linux)**
+```bash
+brew tap podsni/ghswitch
+brew install ghswitch
+```
+
+**Arch Linux (AUR)**
+```bash
+yay -S ghswitch-bin
+paru -S ghswitch-bin
+```
+
+**Scoop (Windows)**
+```powershell
+scoop bucket add podsni https://github.com/podsni/scoop-ghswitch
+scoop install ghswitch
+```
+
+**Chocolatey (Windows)**
+```powershell
+choco install ghswitch
+```
 
 ### Download and Install
 
