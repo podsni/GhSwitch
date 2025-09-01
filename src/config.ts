@@ -1,12 +1,9 @@
 import * as fs from "fs";
-import * as os from "os";
 import * as path from "path";
 import type { AppConfig } from "./types";
+import { getConfigDirectory } from "./utils/platform";
 
-export const CONFIG_DIR = process.env.XDG_CONFIG_HOME
-  ? path.join(process.env.XDG_CONFIG_HOME, "github-switch")
-  : path.join(os.homedir(), ".config", "github-switch");
-
+export const CONFIG_DIR = getConfigDirectory("github-switch");
 export const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
 
 export function loadConfig(): AppConfig {

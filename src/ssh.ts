@@ -2,12 +2,21 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { run, exec } from "./utils/shell";
+import { getSshDirectory, expandPath, normalizePath, platform } from "./utils/platform";
 
-export const SSH_DIR = path.join(os.homedir(), ".ssh");
+export const SSH_DIR = getSshDirectory();
 export const SSH_CONFIG_PATH = path.join(SSH_DIR, "config");
 
 export function ensureSshConfigBlock(alias: string, keyPath: string) {
   fs.mkdirSync(SSH_DIR, { recursive: true });
+  
+  // Set SSH directory permissions (Unix only)
+  try {
+    if (platform.isUnix) {
+      fs.chmodSync(SSH_DIR, 0o700);
+    }
+  } catch {}
+  
   let content = "";
   try {
     content = fs.readFileSync(SSH_CONFIG_PATH, "utf8");
@@ -27,13 +36,14 @@ export function ensureSshConfigBlock(alias: string, keyPath: string) {
     const lines = content.split(/\r?\n/);
     const out: string[] = [];
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].trim() === header) {
+      const currentLine = lines[i];
+      if (currentLine && currentLine.trim() === header) {
         out.push(block);
         i++;
-        while (i < lines.length && !/^Host\s+/.test(lines[i])) i++;
+        while (i < lines.length && lines[i] && !/^Host\s+/.test(lines[i]!)) i++;
         i--;
-      } else {
-        out.push(lines[i]);
+      } else if (currentLine !== undefined) {
+        out.push(currentLine);
       }
     }
     fs.writeFileSync(SSH_CONFIG_PATH, out.join("\n").trim() + "\n", "utf8");

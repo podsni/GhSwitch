@@ -1,8 +1,9 @@
 import * as os from "os";
 import * as fs from "fs";
 import { run, exec } from "./utils/shell";
+import { getGitCredentialsPath } from "./utils/platform";
 
-const GIT_CREDENTIALS = `${os.homedir()}/.git-credentials`;
+const GIT_CREDENTIALS = getGitCredentialsPath();
 
 export async function isGitRepo(cwd: string) {
   try {
@@ -33,11 +34,11 @@ export async function getRemoteUrl(remote = "origin", cwd = process.cwd()) {
 export function parseRepoFromUrl(url: string | null) {
   if (!url) return null;
   let m = url.match(/^git@[^:]+:([^\s]+)$/);
-  if (m) return m[1].replace(/^\/+/, "");
+  if (m && m[1]) return m[1].replace(/^\/+/, "");
   m = url.match(/^ssh:\/\/[^/]+\/(.+)$/);
-  if (m) return m[1];
+  if (m && m[1]) return m[1];
   m = url.match(/^https?:\/\/[^/]+\/(.+)$/);
-  if (m) return m[1];
+  if (m && m[1]) return m[1];
   return null;
 }
 

@@ -25,14 +25,36 @@ export const gradients = {
   rainbow: gradient(["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7"]),
 };
 
+// Cross-platform figlet font loader
+function loadFigletFont(text: string, preferredFont: string = "ANSI Shadow"): string {
+  const fonts = [preferredFont, "Big", "Standard", "Small"];
+  
+  for (const font of fonts) {
+    try {
+      return figlet.textSync(text, {
+        font: font as any,
+        horizontalLayout: "fitted",
+        verticalLayout: "fitted"
+      });
+    } catch (error) {
+      // Continue to next font
+      continue;
+    }
+  }
+  
+  // Ultimate fallback - manual ASCII art for GhSwitch
+  return `
+ ██████╗ ██╗  ██╗███████╗██╗    ██╗██╗████████╗ ██████╗██╗  ██╗
+██╔════╝ ██║  ██║██╔════╝██║    ██║██║╚══██╔══╝██╔════╝██║  ██║
+██║  ███╗███████║███████╗██║ █╗ ██║██║   ██║   ██║     ███████║
+██║   ██║██╔══██║╚════██║██║███╗██║██║   ██║   ██║     ██╔══██║
+╚██████╔╝██║  ██║███████║╚███╔███╔╝██║   ██║   ╚██████╗██║  ██║
+ ╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝   ╚═╝    ╚═════╝╚═╝  ╚═╝`;
+}
+
 // Enhanced title with figlet and gradient
 export function showTitle(text: string = "GhSwitch") {
-  const figletText = figlet.textSync(text, {
-    font: "ANSI Shadow",
-    horizontalLayout: "fitted",
-    verticalLayout: "fitted"
-  });
-  
+  const figletText = loadFigletFont(text);
   console.log(gradients.primary(figletText));
   console.log(colors.muted("✨ Beautiful GitHub Account Switcher ✨\n"));
 }

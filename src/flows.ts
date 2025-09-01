@@ -3,6 +3,7 @@ import * as fs from "fs";
 
 import type { AppConfig, Account } from "./types";
 import { saveConfig } from "./config";
+import { getSshDirectory, getGitCredentialsPath } from "./utils/platform";
 import {
   ensureCredentialStore,
   getRemoteUrl,
@@ -137,14 +138,14 @@ export async function addAccountFlow(cfg: AppConfig) {
       { title: "Ketik path kunci manual…", value: "__manual__" },
     ];
     const sel = await prompts([
-      { type: keyChoices.length ? "autocomplete" : "text", name: "keySel", message: "Pilih SSH key di ~/.ssh atau ketik manual", choices: keyChoices },
+      { type: keyChoices.length ? "autocomplete" : "text", name: "keySel", message: `Pilih SSH key di ${getSshDirectory()} atau ketik manual`, choices: keyChoices },
     ]);
     let keyPath: string | undefined;
     if (sel.keySel && sel.keySel !== "__manual__") {
       keyPath = expandHome(sel.keySel);
     } else {
       const manual = await prompts([
-        { type: "text", name: "keyPath", message: "SSH key path (mis. ~/.ssh/id_ed25519_work)", validate: (v) => !!v || "Required" },
+        { type: "text", name: "keyPath", message: `SSH key path (mis. ${getSshDirectory()}/id_ed25519_work)`, validate: (v) => !!v || "Required" },
       ]);
       keyPath = expandHome(manual.keyPath);
     }
@@ -297,7 +298,12 @@ export async function switchForCurrentRepo(cfg: AppConfig) {
     return;
   }
   const { method } = await prompts({ type: methods.length === 1 ? null : "select", name: "method", message: "Choose method", choices: methods });
-  const chosen = (methods.length === 1 ? methods[0].value : method) as "ssh" | "token";
+  const chosen = (methods.length === 1 ? methods[0]?.value : method) as "ssh" | "token" | undefined;
+  
+  if (!chosen) {
+    console.log("No authentication method selected.");
+    return;
+  }
 
   let remoteUrl = await getRemoteUrl("origin", cwd);
   let repoPath = parseRepoFromUrl(remoteUrl || "");
@@ -354,7 +360,7 @@ export async function switchForCurrentRepo(cfg: AppConfig) {
     await ensureCredentialStore(acc.token.username, acc.token.token);
     
     showBox(
-      `Repository switched to HTTPS token authentication\n\nRemote: ${httpsUrl}\nAccount: ${acc.name}\n\nNote: Token stored in ~/.git-credentials (plaintext)\nConsider using SSH for stronger local security.`,
+      `Repository switched to HTTPS token authentication\n\nRemote: ${httpsUrl}\nAccount: ${acc.name}\n\nNote: Token stored in ${getGitCredentialsPath()} (plaintext)\nConsider using SSH for stronger local security.`,
       { title: "Token Configuration Applied", type: "success" }
     );
     return;
@@ -375,9 +381,9 @@ export async function editAccountFlow(cfg: AppConfig) {
     { type: "text", name: "gitUserName", message: "Git user.name", initial: acc.gitUserName || "" },
     { type: "text", name: "gitEmail", message: "Git user.email", initial: acc.gitEmail || "" },
     { type: "multiselect", name: "methods", message: "Enable methods", choices: [
-      { title: "SSH", value: "ssh" },
-      { title: "Token (HTTPS)", value: "token" },
-    ], initial: methodsInit },
+      { title: "SSH", value: "ssh", selected: acc.ssh !== undefined },
+      { title: "Token (HTTPS)", value: "token", selected: acc.token !== undefined },
+    ] },
   ]);
   if (!base.name) return;
 
@@ -392,7 +398,7 @@ export async function editAccountFlow(cfg: AppConfig) {
 
   if (useSsh && acc.ssh) {
     const sshAns = await prompts([
-      { type: "text", name: "keyPath", message: "SSH key path", initial: acc.ssh.keyPath || "~/.ssh/id_ed25519_" + acc.name },
+      { type: "text", name: "keyPath", message: "SSH key path", initial: acc.ssh.keyPath || `${getSshDirectory()}/id_ed25519_` + acc.name },
       { type: "text", name: "hostAlias", message: "SSH host alias", initial: acc.ssh.hostAlias || `github-${acc.name}` },
       { type: (prev: string) => (prev && !fs.existsSync(expandHome(prev)) ? "confirm" : null), name: "gen", message: "Key not found. Generate new ed25519 key?" },
     ]);
