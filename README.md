@@ -4,7 +4,7 @@ CLI interaktif untuk mengelola banyak akun GitHub per-repo. Mendukung mode SSH (
 
 ## Fitur Utama
 
-- Switch akun per repository: ubah remote `origin` ke SSH alias atau HTTPS (token).
+ - Switch akun per repository: ubah remote `origin` ke SSH (Host `github.com` default) atau HTTPS (token).
 - SSH: atur blok `Host` di `~/.ssh/config` dengan `IdentityFile` khusus per akun.
 - Token: simpan kredensial di `~/.git-credentials` (credential helper store).
 - CRUD Akun: Add, List, Edit, Remove.
@@ -56,26 +56,45 @@ Host github-<label>
 
 2) Import SSH Private Key (opsional, lebih mudah)
 - Pilih menu “Import SSH private key”.
-- Masukkan GitHub username → tool otomatis menyarankan nama file `~/.ssh/id_ed255ina_<username>` dan alias `github-<username>`.
+- Masukkan GitHub username → tool otomatis menyarankan nama file tujuan langsung di `~/.ssh`, contoh: `~/.ssh/id_ed25519_<username>`.
 - Masukkan path private key sumber (mis. `~/.ssh/id_ed25519`).
+- Pilih apakah ingin menjadikannya default untuk Host `github.com` (disarankan agar mudah ganti-ganti).
+- Opsional: tambahkan juga alias Host khusus (mis. `github-<username>`), jika Anda tetap ingin alias.
 - Tool akan:
   - Menyalin key ke `~/.ssh/<nama-file>` dan set permission `600`.
-  - Membuat public key `<nama-file>.pub` jika belum ada (permission `644`).
-  - Opsional menulis blok `Host` di `~/.ssh/config`.
-  - Opsional langsung tes koneksi SSH.
+  - Membuat public key `<nama-file>.pub` bila belum ada (permission `644`).
+  - Jika dipilih, menulis/menimpa blok `Host github.com` agar memakai key ini.
+  - Jika dipilih, menulis blok alias tambahan.
+  - Opsional langsung tes koneksi SSH (ke `github.com` atau alias yang dipilih).
 
 3) Switch Akun untuk Repo Saat Ini
 - Jalankan tool di dalam folder repo git.
 - Pilih “Switch account for current repo”, pilih akun, lalu pilih metode (SSH/Token).
 - Tool akan:
-  - SSH: set `origin` → `git@<alias>:owner/repo.git`, atur `user.name`/`user.email` lokal repo.
+  - SSH: set `origin` → `git@github.com:owner/repo.git`, atur `user.name`/`user.email` lokal repo (Host tetap `github.com`).
   - Token: set `origin` → `https://github.com/owner/repo.git`, atur `credential.helper store` dan tulis `~/.git-credentials`.
-- Jika repo belum punya remote, tool akan minta input `owner/repo`.
+  - Jika repo belum punya remote, tool akan minta input `owner/repo`.
 
 4) Tes Koneksi
 - Pilih “Test connection”, pilih akun, lalu pilih metode:
-  - SSH: jalankan `ssh -T git@<alias>` dan laporkan hasil.
+  - SSH: jalankan `ssh -T git@github.com` dan laporkan hasil.
   - Token: cek `https://api.github.com/user` dengan Basic Auth; sukses bila HTTP 200.
+
+5) Switch SSH Secara Global (tetap Host github.com)
+- Pilih “Switch SSH globally (Host github.com)”.
+- Pilih akun (harus punya SSH key).
+- Tool akan menulis/menimpa blok berikut pada `~/.ssh/config`:
+
+```
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile /path/ke/private_key_akun
+  IdentitiesOnly yes
+```
+
+- Dampak: semua akses `git@github.com:owner/repo.git` akan memakai key tersebut (tanpa ganti-ganti alias). Cocok jika ingin satu key aktif secara global dan mudah ditukar.
+- Anda bisa kapan saja menjalankan menu ini lagi untuk mengganti key global.
 
 5) Edit/Hapus/List Akun
 - Edit: ubah label, `user.name`/`user.email`, aktif/nonaktif metode, ganti key path/alias atau token.
@@ -136,4 +155,5 @@ Host github-<label>
 —
 
 Proyek ini berjalan di [Bun](https://bun.com).
+# GhSwitch
 # GhSwitch
