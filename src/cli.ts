@@ -64,6 +64,11 @@ export async function main() {
   
   // Show beautiful title
   showTitle();
+  // Ensure GitHub CLI is available (offer install if missing)
+  try {
+    const { ensureGhInstalled } = await import("./gh-install");
+    await ensureGhInstalled(true);
+  } catch {}
   
   const cfg = loadConfig();
   
@@ -121,6 +126,21 @@ export async function main() {
           description: "Verify account authentication"
         },
         { 
+          title: colors.secondary("⬇️  Install/Check GitHub CLI"), 
+          value: "ghcli",
+          description: "Ensure 'gh' is installed on this system"
+        },
+        { 
+          title: colors.accent("🔐 GitHub Auth (gh)"), 
+          value: "ghauth",
+          description: "Login/status/logout and upload SSH key"
+        },
+        { 
+          title: colors.accent("🧰 GitHub CLI Toolkit"), 
+          value: "ghtool",
+          description: "Interactive gh commands with suggestions"
+        },
+        { 
           title: colors.muted("🚪 Exit"), 
           value: "exit",
           description: "Close the application"
@@ -167,6 +187,19 @@ export async function main() {
       if (action === "test") {
         const { testConnectionFlow } = await import("./flows");
         await testConnectionFlow(cfg);
+      }
+      if (action === "ghcli") {
+        const { ensureGhInstalled } = await import("./gh-install");
+        const ok = await ensureGhInstalled(true);
+        if (ok) showSuccess("GitHub CLI is ready.");
+      }
+      if (action === "ghauth") {
+        const { ghAuthFlow } = await import("./gh-auth");
+        await ghAuthFlow();
+      }
+      if (action === "ghtool") {
+        const { ghToolkitFlow } = await import("./gh-toolkit");
+        await ghToolkitFlow();
       }
       if (action === "globalssh") {
         const { switchGlobalSshFlow } = await import("./flows");

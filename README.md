@@ -138,6 +138,40 @@ sudo mv ghswitch /usr/local/bin/
 - 🖥️ **Cross-Platform Support** - Full Windows, Linux, macOS compatibility with proper path handling
 - Generate SSH key dan Import SSH private key (auto chmod, auto `.pub`, auto alias/penamaan berdasarkan username).
 - Test koneksi: uji SSH alias dan/atau token.
+- 🤝 **GitHub CLI Integration** - Check/install GitHub CLI, login/logout, and upload SSH keys
+
+### GitHub CLI Toolkit (Interaktif)
+
+- Install/Check GitHub CLI: pastikan `gh` terpasang dan siap.
+- GitHub Auth (gh): login (device/web/token), cek status, logout, upload SSH public key.
+- GitHub CLI Toolkit: jalankan perintah `gh` secara interaktif dengan auto-sugesti untuk repo, issue, dan PR.
+
+Catatan terminal-only:
+- Semua aksi “view” tidak lagi memaksa membuka browser. Output ditampilkan di terminal dan URL ditampilkan agar mudah di-copy.
+- Login “web” akan otomatis fallback ke login “device code” jika `xdg-open`/browser tidak tersedia.
+
+Dokumentasi perintah cepat tersedia di `docs/gh-cheatsheet.md`.
+
+## 🔗 GitHub CLI Integration
+
+You can manage GitHub CLI (gh) directly from GhSwitch:
+
+- Install/Check `gh`: Main Menu → “Install/Check GitHub CLI”
+- GitHub Auth (login/status/logout): Main Menu → “GitHub Auth (gh)”
+- Upload SSH key to GitHub: Inside “GitHub Auth (gh)” → “Upload SSH public key”
+
+What it does:
+
+- Detects if `gh` is installed; offers installation via your platform package manager (Homebrew/winget/choco/scoop/apt/dnf/zypper/pacman/apk)
+- Authenticates with GitHub via web flow or a pasted token
+- Logs out from a selected hostname (default `github.com`)
+- Uploads your local SSH public key (`~/.ssh/*.pub`) to your GitHub account
+
+Catatan (ID):
+
+- Menu “Install/Check GitHub CLI” akan menawarkan instalasi otomatis sesuai OS Anda. Jika tidak tersedia, akan menampilkan panduan manual (https://cli.github.com/).
+- Menu “GitHub Auth (gh)” mendukung: Cek status, Login (web atau token), Logout, dan Upload SSH public key ke GitHub.
+- Untuk login dengan token, siapkan PAT terlebih dahulu dengan scope yang sesuai (umumnya `repo`, `read:org`, atau sesuai kebutuhan).
 
 ## 🛠️ Development Setup
 
