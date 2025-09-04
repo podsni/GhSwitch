@@ -32,6 +32,21 @@ describe("gh-toolkit summaries", () => {
     expect(out[0].nameWithOwner).toBe("b/bravo");
   });
 
+  it("filters repos by language and sorts", () => {
+    const repos: any[] = [
+      { nameWithOwner: "a/alpha", primaryLanguage: { name: "TypeScript" }, stargazerCount: 5, pushedAt: "2024-02-01T00:00:00Z" },
+      { nameWithOwner: "b/bravo", primaryLanguage: { name: "Go" }, stargazerCount: 10, pushedAt: "2024-01-01T00:00:00Z" },
+      { nameWithOwner: "c/charlie", primaryLanguage: { name: "TypeScript" }, stargazerCount: 1, pushedAt: "2024-03-01T00:00:00Z" },
+    ];
+    const { filterReposByLanguage, sortRepos } = require("./gh-toolkit");
+    let out = filterReposByLanguage(repos, "TypeScript");
+    expect(out.length).toBe(2);
+    out = sortRepos(out, "stars", "desc");
+    expect(out[0].nameWithOwner).toBe("a/alpha"); // 5 stars > 1
+    out = sortRepos(out, "updated", "desc");
+    expect(out[0].nameWithOwner).toBe("c/charlie"); // newer pushedAt first
+  });
+
   it("summarizes gist fields correctly", () => {
     const gist: any = {
       id: "abc123",
@@ -58,5 +73,13 @@ describe("gh-toolkit summaries", () => {
     expect(filterGistsByQuery(gists as any, "readme").length).toBe(1);
     expect(filterGistsByQuery(gists as any, "xyz").length).toBe(0);
   });
-});
 
+  it("detects gist ownership correctly", () => {
+    const { isGistOwned } = require("./gh-toolkit");
+    const gMine = { id: "1", ownerLogin: "podsni" };
+    const gOther = { id: "2", ownerLogin: "alice" };
+    expect(isGistOwned(gMine, "podsni")).toBe(true);
+    expect(isGistOwned(gOther, "podsni")).toBe(false);
+    expect(isGistOwned({ id: "3" }, "podsni")).toBe(false);
+  });
+});
