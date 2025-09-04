@@ -1,6 +1,6 @@
 {
   "name": "ghswitch",
-  "version": "1.2.1",
+  "version": "1.3.0-beta.1",
   "description": "Beautiful GitHub Account Switcher - Interactive CLI tool for managing multiple GitHub accounts per repository",
   "module": "index.ts",
   "type": "module",
